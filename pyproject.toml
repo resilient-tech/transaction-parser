@@ -8,7 +8,7 @@ dynamic = ["version"]
 dependencies = [
     "pre_commit~=4.1.0",
     "ocrmypdf~=16.10.0",
-    "rapidfuzz~=2.15.2",
+    "rapidfuzz~=3.12.2",
     "pymupdf~=1.26.3",
 ]
 
