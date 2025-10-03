@@ -1,4 +1,5 @@
 import json
+from functools import wraps
 
 import frappe
 from frappe import _
@@ -33,3 +34,18 @@ def to_dict(value, throw=True):
             frappe.throw(_("Invalid JSON"))
 
         return frappe._dict()
+
+
+def execute_in_new_transaction(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            _db = frappe.local.db
+            frappe.connect(set_admin_as_user=False)
+            return fn(*args, **kwargs)
+        finally:
+            frappe.db.commit()
+            frappe.db.close()
+            frappe.local.db = _db
+
+    return wrapper

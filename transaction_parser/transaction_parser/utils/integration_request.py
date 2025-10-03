@@ -3,15 +3,13 @@ import json
 import frappe
 from frappe import _
 
-from transaction_parser.transaction_parser.utils.__init__ import pretty_json
+from transaction_parser.transaction_parser.utils import pretty_json
+from transaction_parser.utils import execute_in_new_transaction
 
 SERVICE_NAME = "Transaction Parser API"
 
 
-def enqueue_integration_request(**kwargs):
-    frappe.enqueue(create_integration_request, **kwargs)
-
-
+@execute_in_new_transaction
 def create_integration_request(
     url=None,
     request_id=None,
