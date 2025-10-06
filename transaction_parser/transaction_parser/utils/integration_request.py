@@ -3,8 +3,10 @@ import json
 import frappe
 from frappe import _
 
-from transaction_parser.transaction_parser.utils import pretty_json
-from transaction_parser.utils import execute_in_new_transaction
+from transaction_parser.transaction_parser.utils import (
+    execute_in_new_transaction,
+    pretty_json,
+)
 
 SERVICE_NAME = "Transaction Parser API"
 
