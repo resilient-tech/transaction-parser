@@ -39,12 +39,14 @@ def to_dict(value, throw=True):
 def execute_in_new_transaction(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
+        _db = frappe.local.db
         try:
-            _db = frappe.local.db
             frappe.connect(set_admin_as_user=False)
-            return fn(*args, **kwargs)
-        finally:
+            result = fn(*args, **kwargs)
             frappe.db.commit()  # nosemgrep
+            return result
+
+        finally:
             frappe.db.close()
             frappe.local.db = _db
 
