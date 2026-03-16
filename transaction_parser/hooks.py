@@ -27,3 +27,8 @@ doc_events = {
         "on_update": "transaction_parser.transaction_parser.overrides.communication.on_update",
     }
 }
+
+pdf_processors = {
+    "OCRMyPDF": "transaction_parser.transaction_parser.utils.pdf_processor.OCRMyPDFProcessor",
+    "Docling": "transaction_parser.transaction_parser.utils.pdf_processor.DoclingPDFProcessor",
+}

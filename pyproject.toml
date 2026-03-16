@@ -11,6 +11,7 @@ dependencies = [
     "rapidfuzz~=3.12.2",
     "pymupdf~=1.26.3",
     "openai",
+    "docling>=2.75.0",
 ]
 
 [build-system]

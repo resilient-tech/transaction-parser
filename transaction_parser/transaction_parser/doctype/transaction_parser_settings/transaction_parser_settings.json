@@ -9,6 +9,7 @@
   "enabled",
   "ai_model_section",
   "default_ai_model",
+  "pdf_processor",
   "api_keys",
   "transaction_configurations_section",
   "invoice_lookback_count",
@@ -93,6 +94,15 @@
    "options": "DeepSeek Chat\nDeepSeek Reasoner\nOpenAI gpt-4o\nOpenAI gpt-4o-mini\nOpenAI gpt-5\nOpenAI gpt-5-mini\nGoogle Gemini Pro\nGoogle Gemini Flash"
   },
   {
+   "default": "OCRMyPDF",
+   "depends_on": "eval: doc.enabled",
+   "description": "Select the library to use for PDF text extraction",
+   "fieldname": "pdf_processor",
+   "fieldtype": "Select",
+   "label": "PDF Processor",
+   "options": "OCRMyPDF\nDocling"
+  },
+  {
    "depends_on": "eval: doc.enabled",
    "fieldname": "api_keys",
    "fieldtype": "Table",
@@ -156,7 +166,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-08 08:48:58.870032",
+ "modified": "2026-03-14 13:35:17.150533",
  "modified_by": "Administrator",
  "module": "Transaction Parser",
  "name": "Transaction Parser Settings",

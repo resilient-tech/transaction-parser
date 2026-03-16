@@ -28,6 +28,7 @@ def parse(transaction, country, file_url, ai_model=None, page_limit=None):
         ai_model=cstr(ai_model),
         page_limit=cint(page_limit),
         queue="long",
+        now=frappe.conf.developer_mode,
     )
 
 

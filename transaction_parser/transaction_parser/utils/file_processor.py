@@ -1,40 +1,62 @@
 import io
 
 import frappe
-import ocrmypdf
-import pymupdf
 from frappe import _
+from frappe.core.doctype.file.file import File
 from frappe.utils.csvutils import read_csv_content
 from frappe.utils.xlsxutils import (
     read_xls_file_from_attached_file,
     read_xlsx_file_from_attached_file,
 )
 
+from transaction_parser.transaction_parser.utils.pdf_processor import (
+    PDFProcessor,
+    get_pdf_processor,
+)
+
 
 class FileProcessor:
-    """Process files: PDF (trim pages, apply OCR), CSV/Excel (parse data), extract content."""
+    """
+    Process files: PDF (trim pages, apply OCR), CSV/Excel (parse data), extract content.
+    """
 
-    def get_content(self, doc, page_limit=None):
+    def get_content(
+        self,
+        doc: File,
+        page_limit: int | None = None,
+        pdf_processor: PDFProcessor | None = None,
+    ) -> str | None:
         if doc.file_type == "PDF":
-            return self._process_pdf(doc, page_limit)
-        elif doc.file_type in ["CSV", "XLSX", "XLS"]:
-            return self._process_spreadsheet(doc)
-        else:
-            frappe.throw(_("Only PDF, CSV, and Excel files are supported"))
+            return self.process_pdf(doc, page_limit, pdf_processor)
 
-    def _process_pdf(self, doc, page_limit=None):
-        """Process PDF files with OCR and page limiting."""
-        self.file = io.BytesIO(doc.get_content())
-        self._remove_extra_pages(page_limit)
-        self._apply_ocr()
-        return self._get_text()
+        if doc.file_type in ("CSV", "XLSX", "XLS"):
+            return self.process_spreadsheet(doc)
 
-    def _process_spreadsheet(self, doc):
-        """Process CSV and Excel files."""
+        frappe.throw(
+            title=_("Unsupported File Type"),
+            msg=_("Only PDF, CSV, and Excel files are supported"),
+        )
+
+    def process_pdf(
+        self,
+        doc: File,
+        page_limit: int | None = None,
+        pdf_processor: PDFProcessor | None = None,
+    ) -> str:
+        """
+        Process PDF files using the configured PDF processor strategy.
+        """
+        pdf_processor = pdf_processor or get_pdf_processor()
+        return pdf_processor.process(doc, page_limit)
+
+    def process_spreadsheet(self, doc: File) -> str:
+        """
+        Process CSV and Excel files.
+        """
         file_content = doc.get_content()
 
         if doc.file_type == "CSV":
-            file_content_str = self._decode_csv_content(file_content)
+            file_content_str = self.decode_csv_content(file_content)
             rows = read_csv_content(file_content_str)
         elif doc.file_type == "XLSX":
             rows = read_xlsx_file_from_attached_file(fcontent=file_content)
@@ -42,10 +64,12 @@ class FileProcessor:
             rows = read_xls_file_from_attached_file(file_content)
 
         # Convert rows to a formatted string representation
-        return self._format_rows_as_text(rows)
+        return self.format_rows_as_text(rows)
 
-    def _decode_csv_content(self, content):
-        """Decode CSV file content with fallback encodings."""
+    def decode_csv_content(self, content: str | bytes) -> str:
+        """
+        Decode CSV file content with fallback encodings.
+        """
         # If content is already a string, return as-is
         if isinstance(content, str):
             return content
@@ -69,8 +93,10 @@ class FileProcessor:
                 )
             )
 
-    def _format_rows_as_text(self, rows):
-        """Convert rows to a text format suitable for AI processing."""
+    def format_rows_as_text(self, rows: list) -> str:
+        """
+        Convert rows to a text format suitable for AI processing.
+        """
         if not rows:
             frappe.throw(_("No data found in the file."))
 
@@ -106,56 +132,3 @@ class FileProcessor:
         text_parts.append(f"Total columns: {len(rows[0])}")
 
         return "\n".join(text_parts)
-
-    def _remove_extra_pages(self, page_limit=None):
-        if not page_limit:
-            return
-
-        input_pdf = pymupdf.open(stream=self.file, filetype="pdf")
-        output_pdf = pymupdf.open()
-        output_pdf.insert_pdf(input_pdf, to_page=page_limit - 1)
-
-        temp_file = io.BytesIO()
-        output_pdf.save(temp_file)
-
-        output_pdf.close()
-        input_pdf.close()
-
-        self.file = temp_file
-        self.file.seek(0)
-
-    def _apply_ocr(self):
-        doc = pymupdf.open(stream=self.file, filetype="pdf")
-        pages_to_ocr = [
-            str(i) for i, page in enumerate(doc, 1) if not page.get_text("text").strip()
-        ]
-
-        if not pages_to_ocr:
-            return
-
-        pages = ",".join(pages_to_ocr)
-
-        temp_file = io.BytesIO()
-        self.file.seek(0)
-
-        ocrmypdf.ocr(
-            input_file=self.file,
-            output_file=temp_file,
-            pages=pages,
-            progress_bar=False,
-            rotate_pages=True,
-            force_ocr=True,
-        )
-
-        self.file = temp_file
-        self.file.seek(0)
-
-    def _get_text(self):
-        text = ""
-        doc = pymupdf.open(stream=self.file, filetype="pdf")
-        for page in doc:
-            text += page.get_text("text")
-
-        doc.close()
-
-        return text
