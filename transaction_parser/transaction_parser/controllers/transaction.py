@@ -102,7 +102,7 @@ class Transaction:
                 document_type=self.DOCTYPE,
                 document_schema=schema,
                 document_data=content,
-                doc_name=file.name,
+                file_doc_name=file.name,
             )
 
         except FileProcessingError as e:
