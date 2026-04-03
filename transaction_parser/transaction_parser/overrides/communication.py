@@ -151,7 +151,6 @@ def _parse_attachments(
                 user=user,
                 party=party,
                 company=company,
-                communication_name=doc.name,
             )
             frappe.db.commit()
 

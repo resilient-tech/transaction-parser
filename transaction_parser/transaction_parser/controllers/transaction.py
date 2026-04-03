@@ -2,8 +2,10 @@ import erpnext
 import frappe
 from erpnext.setup.utils import get_exchange_rate
 from erpnext.stock.get_item_details import get_item_details
+from httpx import HTTPError
 from rapidfuzz import fuzz, process
 
+from transaction_parser.exceptions import FileProcessingError
 from transaction_parser.transaction_parser.ai_integration.parser import AIParser
 from transaction_parser.transaction_parser.utils import to_dict
 from transaction_parser.transaction_parser.utils.file_processor import FileProcessor
@@ -36,7 +38,6 @@ class Transaction:
         files,
         ai_model: str | None = None,
         page_limit: int | None = None,
-        communication_name: str | None = None,
     ):
         self.initialize()
 
@@ -45,7 +46,6 @@ class Transaction:
 
         self.files = files
         self.ai_model = ai_model
-        self.communication_name = communication_name
         self.data = self._parse_file_content(ai_model, page_limit)
         self.doc = frappe.get_doc({"doctype": self.DOCTYPE})
         self.doc.is_created_by_transaction_parser = 1
@@ -61,7 +61,6 @@ class Transaction:
     def initialize(self) -> None:
         # file processing
         self.files = None
-        self.communication_name = None
 
         # output schema
         self.schema = None
@@ -95,16 +94,34 @@ class Transaction:
         ai_model: str | None = None,
         page_limit: int | None = None,
     ) -> dict:
-        content = FileProcessor().get_content(file, page_limit)
-        schema = self.get_schema()
+        try:
+            content = FileProcessor().get_content(file, page_limit)
+            schema = self.get_schema()
 
-        return AIParser(ai_model, self.settings).parse(
-            document_type=self.DOCTYPE,
-            document_schema=schema,
-            document_data=content,
-            doc_name=self.communication_name or file.name,
-            is_communication=bool(self.communication_name),
-        )
+            return AIParser(ai_model, self.settings).parse(
+                document_type=self.DOCTYPE,
+                document_schema=schema,
+                document_data=content,
+                doc_name=file.name,
+            )
+
+        except FileProcessingError as e:
+            error_log = frappe.log_error(
+                title="File processing error in Transaction Parser",
+                reference_doctype="File",
+                reference_name=file.name,
+            )
+            e.error_log = error_log
+            raise e
+
+        except HTTPError as e:
+            error_log = frappe.log_error(
+                title="Transaction Parser API error",
+                reference_doctype="File",
+                reference_name=file.name,
+            )
+            e.error_log = error_log
+            raise e
 
     def _parse_multiple_files(
         self, ai_model: str | None = None, page_limit: int | None = None

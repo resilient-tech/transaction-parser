@@ -10,17 +10,23 @@ from frappe.utils.xlsxutils import (
     read_xlsx_file_from_attached_file,
 )
 
+from transaction_parser.exceptions import FileProcessingError
+
 
 class FileProcessor:
     """Process files: PDF (trim pages, apply OCR), CSV/Excel (parse data), extract content."""
 
     def get_content(self, doc, page_limit=None):
-        if doc.file_type == "PDF":
-            return self._process_pdf(doc, page_limit)
-        elif doc.file_type in ["CSV", "XLSX", "XLS"]:
-            return self._process_spreadsheet(doc)
-        else:
-            frappe.throw(_("Only PDF, CSV, and Excel files are supported"))
+        try:
+            if doc.file_type == "PDF":
+                return self._process_pdf(doc, page_limit)
+            elif doc.file_type in ["CSV", "XLSX", "XLS"]:
+                return self._process_spreadsheet(doc)
+            else:
+                frappe.throw(_("Only PDF, CSV, and Excel files are supported"))
+
+        except Exception as e:
+            raise FileProcessingError from e
 
     def _process_pdf(self, doc, page_limit=None):
         """Process PDF files with OCR and page limiting."""

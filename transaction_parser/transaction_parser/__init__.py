@@ -80,7 +80,7 @@ def _parse(
             files.append(file)
 
         controller = get_controller(country, transaction)(party=party, company=company)
-        doc = controller.generate(files, ai_model, page_limit, communication_name)
+        doc = controller.generate(files, ai_model, page_limit)
 
         filenames = (
             ", ".join([f.file_name for f in files])
@@ -99,33 +99,39 @@ def _parse(
 
     except Exception as e:
         notification = None
+        reference_doctype = "Communication" if communication_name else "File"
+        reference_docname = (
+            communication_name
+            if communication_name
+            else (files[0].name if files else None)
+        )
 
         if (
             isinstance(e, frappe.DuplicateEntryError)
             and frappe.flags.skip_duplicate_error
         ):
+            subject = _("Duplicate {0} found for {1}").format(
+                _(TRANSACTION_MAP[transaction]),
+                f"{reference_doctype} {reference_docname}",
+            )
+
             notification = {
-                "document_type": "Communication" if communication_name else "File",
-                "document_name": (
-                    communication_name if communication_name else files[0].name
-                ),
-                "subject": _("Duplicate entry found for {0}").format(file_urls),
+                "document_type": reference_doctype,
+                "document_name": reference_docname,
+                "subject": subject,
                 "message": str(e),
             }
-            return
 
-        error_log = frappe.log_error(
-            "Transaction Parser API Error",
-            reference_doctype="Communication" if communication_name else "File",
-            reference_name=(
-                communication_name
-                if communication_name
-                else files[0].name
-                if files
-                else None
-            ),
+        if not (error_log := getattr(e, "error_log", None)):
+            error_log = frappe.log_error(
+                "Transaction Parser Error",
+                reference_doctype=reference_doctype,
+                reference_name=reference_docname,
+            )
+
+        message = _("Failed to generate {0} from {1}").format(
+            TRANSACTION_MAP[transaction], f"{reference_doctype} {reference_docname}"
         )
-        message = _("Failed to generate {0} from {1}").format(_(transaction), file_urls)
 
         notification = {
             "document_type": error_log.doctype,

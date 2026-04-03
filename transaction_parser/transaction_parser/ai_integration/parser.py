@@ -35,14 +35,12 @@ class AIParser:
         document_schema: dict,
         document_data: str,
         doc_name: str | None = None,
-        is_communication: bool = False,
     ) -> dict:
         messages = self._build_messages(document_type, document_schema, document_data)
 
         response = self.send_message(
             messages=messages,
             doc_name=doc_name,
-            is_communication=is_communication,
         )
 
         return self.get_content(response)
@@ -72,10 +70,9 @@ class AIParser:
         self,
         messages: tuple,
         doc_name: str | None = None,
-        is_communication: bool = False,
     ) -> dict:
         """Send messages to AI API and handle the response."""
-        log = self._create_log_entry(doc_name, is_communication)
+        log = self._create_log_entry(doc_name)
 
         try:
             response = self._make_api_call(messages)
@@ -96,15 +93,13 @@ class AIParser:
         finally:
             enqueue_integration_request(**log)
 
-    def _create_log_entry(
-        self, doc_name: str | None, is_communication: bool = False
-    ) -> frappe._dict:
+    def _create_log_entry(self, doc_name: str | None) -> frappe._dict:
         """Create a log entry for the API call."""
         log = frappe._dict(url=self.model.base_url)
 
         log.update(
             {
-                "reference_doctype": "Communication" if is_communication else "File",
+                "reference_doctype": "File",
                 "reference_name": doc_name,
             }
         )
