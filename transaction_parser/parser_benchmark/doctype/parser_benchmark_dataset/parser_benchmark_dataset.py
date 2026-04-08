@@ -62,6 +62,7 @@ class ParserBenchmarkDataset(Document):
         page_limit: DF.Int
         party: DF.DynamicLink | None
         party_type: DF.Link | None
+        pass_file_to_ai: DF.Check
         transaction_type: DF.Literal["Sales Order", "Expense"]
     # end: auto-generated types
 
@@ -170,11 +171,13 @@ def create_and_enqueue_benchmark_logs(dataset_name: str) -> list[str]:
     """Create one log per model x processor combo and enqueue each for background execution."""
     dataset: ParserBenchmarkDataset = frappe.get_cached_doc(DOCTYPE, dataset_name)
     models = dataset.get_selected_models()
-    processors = (
-        (dataset.get_selected_processors() or [None])
-        if dataset.has_pdf_file()
-        else [None]
-    )
+
+    if dataset.pass_file_to_ai:
+        processors = [None]
+    elif dataset.has_pdf_file():
+        processors = dataset.get_selected_processors() or [None]
+    else:
+        processors = [None]
 
     commit_info = get_commit_info()
     log_names = []

@@ -62,6 +62,11 @@ class BenchmarkRunner:
             file_docs: list[File] = self._get_file_docs()
             self.controller: Transaction = self._get_controller(file_docs)
 
+            self._pass_file_to_ai = self.dataset.pass_file_to_ai
+
+            if self._pass_file_to_ai:
+                self.log.file_passed_to_ai = 1
+
             file_contents = self._run_file_parsing(file_docs)
             ai_content = self._run_ai_parsing(file_contents, file_docs)
             self._calculate_cost()
@@ -134,9 +139,6 @@ class BenchmarkRunner:
     def _run_file_parsing(self, file_docs: list[File]) -> list[str]:
         # TODO: It is assumed that Process One Document Per Communication is enabled
         # to prevent stopping an already running tracemalloc instance
-        self._pass_file_to_ai = cint(
-            frappe.get_cached_doc("Transaction Parser Settings").pass_file_to_ai
-        )
         self._file_bytes_list: list[bytes | None] = []
 
         was_tracing = tracemalloc.is_tracing()

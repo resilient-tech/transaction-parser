@@ -42,6 +42,7 @@ class ParserBenchmarkLog(Document):
         file_content: DF.Code | None
         file_parse_memory: DF.Float
         file_parse_time: DF.Float
+        file_passed_to_ai: DF.Check
         input_cost: DF.Currency
         input_token_cost: DF.Currency
         naming_series: DF.Literal["PAR-BM-LOG-"]

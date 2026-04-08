@@ -31,6 +31,8 @@
   "column_break_zgpf",
   "google_gemini_flash_25",
   "google_gemini_pro_25",
+  "file_parsing_section",
+  "pass_file_to_ai",
   "pdf_processor_section",
   "ocrmypdf",
   "docling",
@@ -183,6 +185,15 @@
    "label": "Google Gemini Flash-2.5"
   },
   {
+   "allow_on_submit": 1,
+   "default": "0",
+   "description": "Upload the original file directly to the AI model, bypassing text extraction. Only creates one log per model (no processor combos).",
+   "fieldname": "pass_file_to_ai",
+   "fieldtype": "Check",
+   "label": "Pass File to AI"
+  },
+  {
+   "depends_on": "eval: !doc.pass_file_to_ai",
    "fieldname": "pdf_processor_section",
    "fieldtype": "Section Break",
    "label": "PDF Processors"
@@ -283,6 +294,11 @@
   {
    "fieldname": "column_break_xusg",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "file_parsing_section",
+   "fieldtype": "Section Break",
+   "label": "File Parsing"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -293,7 +309,7 @@
    "link_fieldname": "dataset"
   }
  ],
- "modified": "2026-04-06 12:40:15.057627",
+ "modified": "2026-04-08 13:17:20.056631",
  "modified_by": "Administrator",
  "module": "Parser Benchmark",
  "name": "Parser Benchmark Dataset",
