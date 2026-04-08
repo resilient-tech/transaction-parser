@@ -56,9 +56,12 @@ This {input_doc_type} is received by the following company:
 {role_hint}
 """
 
-    return f"""Generate {document_type} for the given {input_doc_type} according to above JSON schema.{company_context}
-Document data is given below:
-{document_data}"""
+    prompt = f"Generate {document_type} for the given {input_doc_type} according to above JSON schema.{company_context}"
+
+    if document_data:
+        prompt += f"\nDocument data is given below:\n{document_data}"
+
+    return prompt
 
 
 def get_expense_account_system_prompt(schema: dict) -> str:

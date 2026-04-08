@@ -134,6 +134,11 @@ class BenchmarkRunner:
     def _run_file_parsing(self, file_docs: list[File]) -> list[str]:
         # TODO: It is assumed that Process One Document Per Communication is enabled
         # to prevent stopping an already running tracemalloc instance
+        self._pass_file_to_ai = cint(
+            frappe.get_cached_doc("Transaction Parser Settings").pass_file_to_ai
+        )
+        self._file_bytes_list: list[bytes | None] = []
+
         was_tracing = tracemalloc.is_tracing()
         if not was_tracing:
             tracemalloc.start()
@@ -146,12 +151,21 @@ class BenchmarkRunner:
                 if file_doc.file_type == "PDF" and self.log.pdf_processor:
                     pdf_processor = get_pdf_processor(self.log.pdf_processor)
 
-                content = FileProcessor().get_content(
-                    file_doc,
-                    self.dataset.page_limit or None,
-                    pdf_processor,
-                )
-                contents.append(content)
+                if self._pass_file_to_ai and file_doc.file_type == "PDF":
+                    processor = pdf_processor or get_pdf_processor()
+                    sanitized = processor.get_sanitized_file(
+                        file_doc, self.dataset.page_limit or None
+                    )
+                    self._file_bytes_list.append(sanitized.read())
+                    contents.append("[PDF sent directly to AI]")
+                else:
+                    content = FileProcessor().get_content(
+                        file_doc,
+                        self.dataset.page_limit or None,
+                        pdf_processor,
+                    )
+                    contents.append(content)
+                    self._file_bytes_list.append(None)
         finally:
             self.log.file_parse_time = flt(default_timer() - start, self.precision)
             _, peak = tracemalloc.get_traced_memory()
@@ -172,11 +186,15 @@ class BenchmarkRunner:
 
     def _run_ai_parsing(self, file_contents: list[str], file_docs: list[File]) -> dict:
         if len(file_contents) == 1:
-            return self._run_single_ai_parse(file_contents[0], file_docs[0].name)
+            return self._run_single_ai_parse(
+                file_contents[0], file_docs[0].name, self._file_bytes_list[0]
+            )
 
         return self._run_multi_ai_parse(file_contents, file_docs)
 
-    def _run_single_ai_parse(self, file_content: str, file_name: str) -> dict:
+    def _run_single_ai_parse(
+        self, file_content: str, file_name: str, file_bytes: bytes | None = None
+    ) -> dict:
         """Parse a single file with AI."""
         parser = AIParser(self.log.ai_model)
 
@@ -187,6 +205,7 @@ class BenchmarkRunner:
             document_data=file_content,
             file_doc_name=file_name,
             company=self.dataset.company,
+            file_bytes=file_bytes,
         )
         self.log.ai_parse_time = flt(default_timer() - start, self.precision)
 
@@ -221,6 +240,7 @@ class BenchmarkRunner:
             document_data=file_contents[0],
             file_doc_name=file_docs[0].name,
             company=self.dataset.company,
+            file_bytes=self._file_bytes_list[0],
         )
 
         usage = parser.ai_response.get("usage", {})
@@ -246,6 +266,7 @@ class BenchmarkRunner:
                 document_data=file_content,
                 file_doc_name=file_docs[i].name,
                 company=self.dataset.company,
+                file_bytes=self._file_bytes_list[i],
             )
 
             usage = parser.ai_response.get("usage", {})

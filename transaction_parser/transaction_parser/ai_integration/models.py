@@ -18,6 +18,7 @@ class Model:
     base_url: str
     response_format: str
     supports_temperature: bool = True
+    supports_vision: bool = False
 
 
 ### DeepSeek Models
@@ -54,6 +55,7 @@ class OpenAIGPT4o(Model):
     service_provider: str = "OpenAI"
     base_url: str = "https://api.openai.com/v1"
     response_format: str = ResponseFormat.JSON.value
+    supports_vision: bool = True
 
 
 @dataclass
@@ -64,6 +66,7 @@ class OpenAIGPT4oMini(Model):
     service_provider: str = "OpenAI"
     base_url: str = "https://api.openai.com/v1"
     response_format: str = ResponseFormat.JSON.value
+    supports_vision: bool = True
 
 
 @dataclass
@@ -75,6 +78,7 @@ class OpenAIGPT5(Model):
     base_url: str = "https://api.openai.com/v1"
     response_format: str = ResponseFormat.JSON.value
     supports_temperature: bool = False
+    supports_vision: bool = True
 
 
 @dataclass
@@ -86,6 +90,7 @@ class OpenAIGPT5Mini(Model):
     base_url: str = "https://api.openai.com/v1"
     response_format: str = ResponseFormat.JSON.value
     supports_temperature: bool = False
+    supports_vision: bool = True
 
 
 ### Google Gemini Models
@@ -99,6 +104,7 @@ class GeminiPro(Model):
     service_provider: str = "Google"
     base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     response_format: str = ResponseFormat.JSON.value
+    supports_vision: bool = True
 
 
 @dataclass
@@ -109,6 +115,7 @@ class GeminiFlash(Model):
     service_provider: str = "Google"
     base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     response_format: str = ResponseFormat.JSON.value
+    supports_vision: bool = True
 
 
 ### Model Registry

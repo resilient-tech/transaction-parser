@@ -97,7 +97,19 @@ class Transaction:
         ai_model: str | None = None,
         page_limit: int | None = None,
     ) -> dict:
-        content = FileProcessor().get_content(file, page_limit)
+        file_bytes = None
+
+        if self.settings.pass_file_to_ai and file.file_type == "PDF":
+            from transaction_parser.transaction_parser.utils.pdf_processor import (
+                get_pdf_processor,
+            )
+
+            sanitized = get_pdf_processor().get_sanitized_file(file, page_limit)
+            file_bytes = sanitized.read()
+            content = ""
+        else:
+            content = FileProcessor().get_content(file, page_limit)
+
         schema = self.get_schema()
 
         return AIParser(ai_model, self.settings).parse(
@@ -106,6 +118,7 @@ class Transaction:
             document_data=content,
             file_doc_name=file.name,
             company=self.company,
+            file_bytes=file_bytes,
         )
 
     def _parse_multiple_files(

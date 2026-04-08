@@ -47,6 +47,7 @@ class TransactionParserSettings(Document):
         incoming_email_accounts: DF.Table[TransactionParserEmailAccount]
         invoice_lookback_count: DF.Int
         item_schema: DF.JSON | None
+        pass_file_to_ai: DF.Check
         parse_incoming_emails: DF.Check
         parse_party_emails: DF.Check
         party_emails: DF.Table[TransactionParserPartyEmail]

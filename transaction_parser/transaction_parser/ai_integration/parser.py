@@ -37,9 +37,10 @@ class AIParser:
         document_data: str,
         file_doc_name: str | None = None,
         company: str | None = None,
+        file_bytes: bytes | None = None,
     ) -> dict:
         messages = self._build_messages(
-            document_type, document_schema, document_data, company
+            document_type, document_schema, document_data, company, file_bytes
         )
         self.ai_response = self.send_message(
             messages=messages, file_doc_name=file_doc_name
@@ -52,10 +53,37 @@ class AIParser:
         document_schema: dict,
         document_data: str,
         company: str | None = None,
+        file_bytes: bytes | None = None,
     ) -> tuple:
         """Build the message structure for AI API call."""
         company_info = self._get_company_info(company) if company else ""
         system_prompt = get_system_prompt(document_schema)
+
+        if file_bytes and self.model.supports_vision:
+            import base64
+
+            user_prompt = get_user_prompt(document_type, "", company_info)
+            b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
+
+            return (
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:application/pdf;base64,{b64}",
+                            },
+                        },
+                    ],
+                },
+            )
+
         user_prompt = get_user_prompt(document_type, document_data, company_info)
 
         return (

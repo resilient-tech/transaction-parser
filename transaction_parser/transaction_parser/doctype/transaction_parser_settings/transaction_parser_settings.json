@@ -10,6 +10,7 @@
   "ai_model_section",
   "default_ai_model",
   "pdf_processor",
+  "pass_file_to_ai",
   "api_keys",
   "transaction_configurations_section",
   "invoice_lookback_count",
@@ -102,6 +103,14 @@
    "fieldtype": "Select",
    "label": "PDF Processor",
    "options": "OCRMyPDF\nDocling"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.enabled",
+   "description": "When enabled, sends the original PDF file directly to the AI model, bypassing text extraction. Only works with AI models that support vision input. Falls back to text extraction for unsupported models or non-PDF files.",
+   "fieldname": "pass_file_to_ai",
+   "fieldtype": "Check",
+   "label": "Pass File to AI"
   },
   {
    "depends_on": "eval: doc.enabled",
