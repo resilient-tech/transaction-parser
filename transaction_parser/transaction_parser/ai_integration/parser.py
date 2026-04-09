@@ -64,6 +64,7 @@ class AIParser:
 
             user_prompt = get_user_prompt(document_type, "", company_info)
             b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
+            file_content = self.model.build_file_content(b64)
 
             return (
                 {
@@ -74,12 +75,7 @@ class AIParser:
                     "role": "user",
                     "content": [
                         {"type": "text", "text": user_prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:application/pdf;base64,{b64}",
-                            },
-                        },
+                        file_content,
                     ],
                 },
             )

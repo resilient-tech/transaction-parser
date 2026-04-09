@@ -9,6 +9,13 @@ class ResponseFormat(Enum):
     TEXT = "text"
 
 
+class FileContentFormat(Enum):
+    """How the model accepts file attachments in chat messages."""
+
+    FILE = "file"  # OpenAI-style: type=file with file_data
+    IMAGE_URL = "image_url"  # Gemini/others: type=image_url with data URI
+
+
 @dataclass
 class Model:
     """Base model configuration for AI services."""
@@ -19,6 +26,32 @@ class Model:
     response_format: str
     supports_temperature: bool = True
     supports_vision: bool = False
+    file_content_format: FileContentFormat = FileContentFormat.IMAGE_URL
+
+    def build_file_content(
+        self,
+        b64_data: str,
+        filename: str = "document.pdf",
+        mime_type: str = "application/pdf",
+    ) -> dict:
+        """Build the file content block for the chat message."""
+        data_uri = f"data:{mime_type};base64,{b64_data}"
+
+        if self.file_content_format == FileContentFormat.FILE:
+            return {
+                "type": "file",
+                "file": {
+                    "filename": filename,
+                    "file_data": data_uri,
+                },
+            }
+
+        return {
+            "type": "image_url",
+            "image_url": {
+                "url": data_uri,
+            },
+        }
 
 
 ### DeepSeek Models
@@ -56,6 +89,7 @@ class OpenAIGPT4o(Model):
     base_url: str = "https://api.openai.com/v1"
     response_format: str = ResponseFormat.JSON.value
     supports_vision: bool = True
+    file_content_format: FileContentFormat = FileContentFormat.FILE
 
 
 @dataclass
@@ -67,6 +101,7 @@ class OpenAIGPT4oMini(Model):
     base_url: str = "https://api.openai.com/v1"
     response_format: str = ResponseFormat.JSON.value
     supports_vision: bool = True
+    file_content_format: FileContentFormat = FileContentFormat.FILE
 
 
 @dataclass
@@ -79,6 +114,7 @@ class OpenAIGPT5(Model):
     response_format: str = ResponseFormat.JSON.value
     supports_temperature: bool = False
     supports_vision: bool = True
+    file_content_format: FileContentFormat = FileContentFormat.FILE
 
 
 @dataclass
@@ -91,6 +127,7 @@ class OpenAIGPT5Mini(Model):
     response_format: str = ResponseFormat.JSON.value
     supports_temperature: bool = False
     supports_vision: bool = True
+    file_content_format: FileContentFormat = FileContentFormat.FILE
 
 
 ### Google Gemini Models
