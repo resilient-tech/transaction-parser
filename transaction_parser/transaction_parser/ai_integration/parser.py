@@ -12,7 +12,7 @@ from transaction_parser.transaction_parser.ai_integration.prompts import (
 )
 from transaction_parser.transaction_parser.utils import is_enabled, to_dict
 from transaction_parser.transaction_parser.utils.integration_request import (
-    enqueue_integration_request,
+    create_integration_request,
 )
 
 
@@ -115,7 +115,7 @@ class AIParser:
             raise e
 
         finally:
-            enqueue_integration_request(**log)
+            create_integration_request(**log)
 
     def _create_log_entry(self, doc_name: str | None) -> frappe._dict:
         """Create a log entry for the API call."""
