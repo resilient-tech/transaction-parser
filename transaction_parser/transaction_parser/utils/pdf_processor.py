@@ -2,7 +2,6 @@ import io
 from abc import ABC, abstractmethod
 
 import frappe
-import pymupdf
 from frappe import _
 from frappe.core.doctype.file.file import File
 
@@ -50,6 +49,8 @@ class PDFProcessor(ABC):
         return self.trim_pages(file, page_limit)
 
     def trim_pages(self, file: io.BytesIO, page_limit: int | None = None) -> io.BytesIO:
+        import pymupdf
+
         if not page_limit or page_limit <= 0:
             file.seek(0)
             return file
@@ -74,6 +75,8 @@ class PDFProcessor(ABC):
         return temp_file
 
     def get_text(self, file: io.BytesIO) -> str:
+        import pymupdf
+
         text = ""
         doc = pymupdf.open(stream=file, filetype="pdf")
 
