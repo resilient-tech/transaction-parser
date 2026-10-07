@@ -1,23 +1,28 @@
-const SUPPORTED_EXTENSIONS = ["pdf", "xlsx", "xls", "csv"];
-
-const PARTY_TYPE_MAP = {
-	"Sales Order": "Customer",
-	Expense: "Supplier",
-};
-
 frappe.ui.form.on("Communication", {
-	refresh(frm) {
-		if (frm.is_new() || !frappe.boot.transaction_parser_enabled) return;
-		if (!has_supported_attachments(frm)) return;
+	setup(frm) {
+		// attachments added or removed from the sidebar
+		$(frm.wrapper).on("attachments_change", () => toggle_parse_button(frm));
+	},
 
-		frm.add_custom_button(__("Parse"), () => show_parse_dialog(frm));
+	refresh(frm) {
+		toggle_parse_button(frm);
 	},
 });
 
-function has_supported_attachments(frm) {
+function toggle_parse_button(frm) {
+	frm.remove_custom_button(__("Parse"));
+
+	const settings = frappe.boot.transaction_parser;
+	if (frm.is_new() || !settings?.enabled || !settings.transactions.length) return;
+	if (!has_supported_attachments(frm, settings.supported_extensions)) return;
+
+	frm.add_custom_button(__("Parse"), () => show_parse_dialog(frm));
+}
+
+function has_supported_attachments(frm, supported_extensions) {
 	const attachments = frm.get_docinfo()?.attachments || [];
 	return attachments.some((attachment) =>
-		SUPPORTED_EXTENSIONS.includes((attachment.file_url || "").split(".").pop().toLowerCase())
+		supported_extensions.includes((attachment.file_url || "").split(".").pop().toLowerCase())
 	);
 }
 
@@ -28,7 +33,9 @@ async function show_parse_dialog(frm) {
 		freeze: true,
 	});
 
-	const party_type = PARTY_TYPE_MAP[defaults.transaction];
+	const { transactions, party_types } = frappe.boot.transaction_parser;
+	const transaction = transactions.includes(defaults.transaction) ? defaults.transaction : "";
+	const party_type = party_types[transaction];
 
 	const dialog = new frappe.ui.Dialog({
 		title: __("Parse Communication"),
@@ -38,13 +45,16 @@ async function show_parse_dialog(frm) {
 				label: __("Transaction"),
 				fieldtype: "Select",
 				options: [
-					{ value: "Sales Order", label: __("Sales Order") },
-					{ value: "Expense", label: __("Expense Invoice") },
+					{ value: "", label: "" },
+					...transactions.map((value) => ({
+						value,
+						label: transaction_parser.TRANSACTION_LABEL_MAP[value], // eslint-disable-line no-undef
+					})),
 				],
-				default: defaults.transaction,
+				default: transaction,
 				reqd: 1,
 				onchange() {
-					const party_type = PARTY_TYPE_MAP[this.get_value()];
+					const party_type = party_types[this.get_value()];
 					dialog.set_df_property("party", "options", party_type);
 					dialog.set_df_property("party", "label", __(party_type || "Party"));
 					dialog.set_value("party", defaults.parties[party_type] || "");
@@ -64,6 +74,7 @@ async function show_parse_dialog(frm) {
 				fieldtype: "Link",
 				options: party_type,
 				default: defaults.parties[party_type],
+				depends_on: "transaction",
 				description: __("Leave empty to let the parser identify the party"),
 			},
 			{

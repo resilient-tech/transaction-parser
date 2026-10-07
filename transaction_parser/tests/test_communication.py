@@ -4,7 +4,9 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from frappe.utils import get_datetime
 
+from transaction_parser.boot import boot_session
 from transaction_parser.transaction_parser.overrides.communication import (
     get_parse_defaults,
     on_update,
@@ -237,6 +239,69 @@ class TestCommunication(FrappeTestCase):
                 )
 
         mock_enqueue.assert_not_called()
+
+    @patch("frappe.enqueue")
+    def test_parse_rejects_invalid_options(self, mock_enqueue):
+        for options in (
+            {"ai_model": "Unknown Model"},
+            {"party": "_Test Nonexistent Supplier"},
+            # a Customer is not a valid party for an Expense
+            {"party": CUSTOMER},
+            {"company": "_Test Nonexistent Company"},
+        ):
+            with self.subTest(options=options):
+                self.assertRaises(
+                    frappe.ValidationError,
+                    parse_communication,
+                    **{
+                        "communication": self.communication.name,
+                        "transaction": "Expense",
+                        "company": COMPANY,
+                        "attachments": ["https://example.com/tp-test/invoice.pdf"],
+                        **options,
+                    },
+                )
+
+        mock_enqueue.assert_not_called()
+
+    @patch("frappe.enqueue")
+    def test_parse_marks_processed_when_enqueued(self, mock_enqueue):
+        modified = get_datetime(self.communication.modified)
+
+        parse_communication(
+            communication=self.communication.name,
+            transaction="Sales Order",
+            company=COMPANY,
+            attachments=["https://example.com/tp-test/invoice.pdf"],
+        )
+
+        mock_enqueue.assert_called_once()
+        processed, current_modified = frappe.db.get_value(
+            "Communication",
+            self.communication.name,
+            ["is_processed_by_transaction_parser", "modified"],
+        )
+        self.assertEqual(processed, 1)
+        self.assertEqual(current_modified, modified)
+        self.assertEqual(get_parse_defaults(self.communication.name)["is_processed"], 1)
+
+    # ----------------------
+    # boot
+    # ----------------------
+
+    def test_boot_session(self):
+        bootinfo = frappe._dict()
+        boot_session(bootinfo)
+
+        self.assertEqual(bootinfo.transaction_parser["enabled"], 1)
+        self.assertEqual(
+            bootinfo.transaction_parser["transactions"], ["Sales Order", "Expense"]
+        )
+        self.assertEqual(
+            bootinfo.transaction_parser["party_types"],
+            {"Sales Order": "Customer", "Expense": "Supplier"},
+        )
+        self.assertIn("pdf", bootinfo.transaction_parser["supported_extensions"])
 
     # ----------------------
     # on_update (automatic parsing)

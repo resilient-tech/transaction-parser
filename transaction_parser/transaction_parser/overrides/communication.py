@@ -146,7 +146,8 @@ def _parse_attachments(
             )
             frappe.db.commit()
 
-    doc.db_set("is_processed_by_transaction_parser", 1)
+    # keep `modified` unchanged so an open form can still be saved
+    doc.db_set("is_processed_by_transaction_parser", 1, update_modified=False)
 
 
 @frappe.whitelist()
@@ -210,6 +211,18 @@ def parse_communication(
     doc.check_permission("read")
 
     frappe.has_permission(TRANSACTION_MAP[transaction], "create", throw=True)
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist").format(company))
+
+    frappe.has_permission("Company", "read", company, throw=True)
+
+    party_type = PARTY_TYPE_MAP[transaction]
+    if party and not frappe.db.exists(party_type, party):
+        frappe.throw(_("{0} {1} does not exist").format(_(party_type), party))
+
+    supported_models = get_ai_models()["supported_models"].split("\n")
+    if ai_model and ai_model not in supported_models:
+        frappe.throw(_("Unsupported AI Model: {0}").format(ai_model))
 
     file_urls = frappe.parse_json(attachments) or []
     if isinstance(file_urls, str):
@@ -229,6 +242,9 @@ def parse_communication(
                 communication, ", ".join(invalid_file_urls)
             )
         )
+
+    # mark now, so parsing again before the job finishes asks for confirmation
+    doc.db_set("is_processed_by_transaction_parser", 1, update_modified=False)
 
     frappe.enqueue(
         "transaction_parser.transaction_parser.overrides.communication._parse_attachments",
