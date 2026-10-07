@@ -16,8 +16,11 @@ before_tests = "transaction_parser.tests.before_tests"
 
 app_include_js = "transaction_parser.bundle.js"
 
+extend_bootinfo = "transaction_parser.boot.boot_session"
+
 doctype_js = {
     "Sales Order": "public/js/sales_order.js",
+    "Communication": "public/js/communication.js",
 }
 
 doctype_list_js = {
