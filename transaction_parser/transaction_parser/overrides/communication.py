@@ -151,7 +151,7 @@ def _parse_attachments(
 
 
 @frappe.whitelist()
-def get_parse_defaults(communication):
+def get_parse_defaults(communication: str):
     settings = frappe.get_cached_doc("Transaction Parser Settings")
     is_enabled(settings)
 
@@ -191,16 +191,16 @@ def get_parse_defaults(communication):
     }
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def parse_communication(
-    communication,
-    transaction,
-    company,
-    attachments,
-    party=None,
-    ai_model=None,
-    page_limit=None,
-    process_one_document=0,
+    communication: str,
+    transaction: str,
+    company: str,
+    attachments: str | list[str],
+    party: str | None = None,
+    ai_model: str | None = None,
+    page_limit: int | None = None,
+    process_one_document: int | bool = 0,
 ):
     is_enabled()
 
