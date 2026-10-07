@@ -93,6 +93,7 @@ frappe.provide("transaction_parser");
 // eslint-disable-next-line no-undef
 Object.assign(transaction_parser, {
 	create_transaction_parser_dialog,
+	TRANSACTION_LABEL_MAP,
 });
 
 async function get_available_ai_models() {
