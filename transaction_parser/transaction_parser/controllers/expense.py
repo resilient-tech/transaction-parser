@@ -71,15 +71,8 @@ class Expense(Transaction):
         self.doc.shipping_address = self.get_company_shipping_address()
         self.doc.supplier_address = self.get_supplier_address()
 
-        self.doc.contact_person = self.get_contact(
-            emails=(
-                self.data.company.billing.contact.email
-                + self.data.company.shipping.contact.email
-            ),
-            phones=(
-                self.data.company.billing.contact.phone
-                + self.data.company.shipping.contact.phone
-            ),
+        self.doc.contact_person = self.get_party_contact(
+            self.data.company.billing, self.data.company.shipping
         )
 
         self.set_item_tax_template()

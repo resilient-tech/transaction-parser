@@ -147,6 +147,10 @@ class ResponseMerger:
             source_value = source.get(key)
 
             if field_type.is_empty(source_value):
+                # keep `[]` / `{}` instead of leaving the key missing
+                if source_value is not None and target.get(key) is None:
+                    target[key] = source_value
+
                 continue
 
             if isinstance(field_type, PrimitiveField):
