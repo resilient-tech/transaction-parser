@@ -507,6 +507,15 @@ class Transaction:
 
     ### Contact
 
+    def get_party_contact(self, *parties) -> str | None:
+        emails, phones = [], []
+        for party in parties:
+            contact = (party or {}).get("contact") or {}
+            emails.extend(contact.get("email") or [])
+            phones.extend(contact.get("phone") or [])
+
+        return self.get_contact(emails=emails, phones=phones)
+
     def get_contact(self, emails: list, phones: list) -> str | None:
         if emails and (
             found := frappe.db.get_value(
